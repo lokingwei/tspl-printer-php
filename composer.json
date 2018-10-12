@@ -1,0 +1,17 @@
+{
+    "name": "lokingwei/tspl-printer-php",
+    "description": "A php implementation for TSPL label printer, suitable for web POS",
+    "type": "library",
+    "require-dev": {
+        "phpunit/phpunit": "^4.8"
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Lo King Wei",
+            "email": "lokingwei@gmail.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {}
+}
