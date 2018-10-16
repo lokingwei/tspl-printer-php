@@ -10,7 +10,7 @@
  * for details.
  */
 
-namespace LoKingWei\Tslp\PrintConnectors;
+namespace LoKingWei\Tspl\PrintConnectors;
 
 use Exception;
 

@@ -12,6 +12,11 @@
             "email": "lokingwei@gmail.com"
         }
     ],
+    "autoload": {
+        "psr-4": {
+            "LoKingWei\\Tspl\\": "src/"
+        }
+    },
     "minimum-stability": "dev",
     "require": {}
 }

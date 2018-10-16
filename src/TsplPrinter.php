@@ -10,11 +10,10 @@
  * for details.
  */
 
-namespace LoKingWei\Tslp;
+namespace LoKingWei\Tspl;
 
 use Exception;
-use LoKingWei\Tslp\PrintImages\TslpImage;
-
+use LoKingWei\Tspl\PrintImages\TsplImage;
 
 class Printer
 {
@@ -141,7 +140,7 @@ class Printer
         return $str;
     }
 
-    public function printBitmapImage(TslpImage $image, $x = 0, $y = 0, $mode = 0)
+    public function printBitmapImage(TsplImage $image, $x = 0, $y = 0, $mode = 0)
     {
         $commands = [];
         array_push($commands, $this->getSizeCommand());

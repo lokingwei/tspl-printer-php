@@ -10,7 +10,7 @@
  * for details.
  */
 
-namespace LoKingWei\Tslp\PrintConnectors;
+namespace LoKingWei\Tspl\PrintConnectors;
 
 /**
  * Print connector that writes to nowhere, but allows the user to retrieve the

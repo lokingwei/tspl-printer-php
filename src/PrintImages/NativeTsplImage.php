@@ -10,13 +10,13 @@
  * for details.
  */
 
-namespace LoKingWei\Tslp\PrintImages;
+namespace LoKingWei\Tspl\PrintImages;
 
 /**
  * Implementation of EscposImage using only native PHP.
  * TODO: wbmp, pbm, bmp files.
  */
-class NativeEscposImage extends TslpImage
+class NativeTsplImage extends TsplImage
 {
 
 }

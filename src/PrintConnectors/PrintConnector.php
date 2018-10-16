@@ -10,7 +10,7 @@
  * for details.
  */
 
-namespace Mike42\Escpos\PrintConnectors;
+namespace LoKingWei\Tspl\PrintConnectors;
 
 /**
  * Interface passed to Escpos class for receiving print data. Print connectors

@@ -9,7 +9,7 @@
  * This software is distributed under the terms of the MIT license. See LICENSE.md
  * for details.
  */
-namespace LoKingWei\Tslp\PrintImages;
+namespace LoKingWei\Tspl\PrintImages;
 
 use Exception;
 use Imagick;
@@ -17,7 +17,7 @@ use Imagick;
 /**
  * Implementation of EscposImage using the Imagick PHP plugin.
  */
-class ImagickTslpImage extends TslpImage
+class ImagickTsplImage extends TsplImage
 {
     /**
      * Load actual image pixels from Imagick object

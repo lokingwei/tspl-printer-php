@@ -10,7 +10,7 @@
  * for details.
  */
 
-namespace LoKingWei\Tslp\PrintImages;
+namespace LoKingWei\Tspl\PrintImages;
 
 use Exception;
 use InvalidArgumentException;
@@ -35,7 +35,7 @@ use InvalidArgumentException;
  *    also not complex to add, and is a likely future feature.
  *  - Support for native use of the BMP format is a goal, for maximum compatibility with target environments.
  */
-class TslpImage
+class TsplImage
 {
     /**
      * @var int $imgHeight
@@ -438,19 +438,19 @@ class TslpImage
                     // Skip option if Imagick is not loaded
                     continue;
                 }
-                return new ImagickTslpImage($filename, $allow_optimisations);
+                return new ImagickTsplImage($filename, $allow_optimisations);
             } elseif ($implemetnation === 'gd') {
                 if (!self::isGdLoaded()) {
                     // Skip option if GD not loaded
                     continue;
                 }
-                return new GdTslpImage($filename, $allow_optimisations);
+                return new GdTsplImage($filename, $allow_optimisations);
             } elseif ($implemetnation === 'native') {
                 if (!in_array($ext, ['wbmp', 'pbm', 'bmp'])) {
                     // Pure PHP is fastest way to generate raster output from wbmp and pbm formats.
                     continue;
                 }
-                return new NativeTslpImage($filename, $allow_optimisations);
+                return new NativeTsplImage($filename, $allow_optimisations);
             } else {
                 // Something else on the 'preferred' list.
                 throw new InvalidArgumentException("'$implemetnation' is not a known EscposImage implementation");

@@ -10,14 +10,14 @@
  * for details.
  */
 
-namespace LoKingWei\Tslp\PrintImages;
+namespace LoKingWei\Tspl\PrintImages;
 
 use Exception;
 
 /**
  * Implementation of EscposImage using the GD PHP plugin.
  */
-class GdTslpImage extends TslpImage
+class GdTsplImage extends TsplImage
 {
     /**
      * Load an image from disk, into memory, using GD.
