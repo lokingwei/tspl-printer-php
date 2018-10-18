@@ -14,23 +14,33 @@ namespace LoKingWei\Tspl;
 
 use Exception;
 use LoKingWei\Tspl\PrintImages\TsplImage;
+use LoKingWei\Tspl\PrintConnectors\PrintConnector;
 
-class Printer
+class TsplPrinter
 {
     protected $connector;
 
     private $defaultUnit;
 
-    private $sizeWidth;
-    private $sizeHeight;
+    private $sizeWidth = 35;
+    private $sizeHeight = 25;
     private $sizeUnit;
 
-    private $gapDistance;
+    private $gapDistance = "5";
     private $gapOffset;
     private $gapUnit;
 
-    private $referenceX;
-    private $referenceY;
+    private $referenceX = 0;
+    private $referenceY = 0;
+
+    private $direction = 1;
+
+    const DPI200 = 8;
+    const DPI300 = 12;
+
+    const MILIMETER = "mm";
+    const DOT = "dot";
+    const INCH = "";
 
     const LINE_BREAK = "\r\n";
     const SEPARATOR = ",";
@@ -40,8 +50,11 @@ class Printer
     const SIZE = 'SIZE';
     const GAP = 'GAP';
     const REFERENCE = 'REFERENCE';
+    const DIRECTION = "DIRECTION";
 
     //Action related command
+    const TEXT = "TEXT";
+    const BEEP = "BEEP";
     const BITMAP = "BITMAP";
     const PRINT = "PRINT";
 
@@ -50,14 +63,21 @@ class Printer
     const EOP = "EOP";
     const DEFAULT_UNIT = "";
 
+    public function __construct(PrintConnector $connector)
+    {
+        $this->connector = $connector;
+    }
+
     public function setDefaultUnit($defaultUnit) {
         $this->defaultUnit = $defaultUnit;
+        return $this;
     }
 
     public function setSize($width, $height = null, $unit = null) {
         $this->sizeWidth = $width;
         $this->sizeHeight = $height;
         $this->sizeUnit = $unit;
+        return $this;
     }
 
     public function setGap($distance, $offset, $unit = null) {
@@ -73,6 +93,10 @@ class Printer
         return $this;
     }
 
+    public function setDirection($direction) {
+        $this->direction = $direction;
+        return $this;
+    }
     
     public function getSizeCommand()
     {
@@ -110,6 +134,14 @@ class Printer
         return $str;
     }
 
+    public function getDirectionCommand()
+    {
+        $str = self::DIRECTION;
+        $str .= self::SPACE;
+        $str .= $this->direction;
+        return $str;
+    }
+
     public function getBitmapCommand($x, $y, $withdBytes, $heightDots, $mode, $data)
     {
         $str = self::BITMAP;
@@ -128,6 +160,30 @@ class Printer
         return $str;
     }
 
+    public function getTextCommand($x, $y, $font, $rotation, $xMultiplication, $yMultiplication, $alignment, $text)
+    {
+        $str = self::TEXT;
+        $str .= self::SPACE;
+        $str .= $x;
+        $str .= self::SEPARATOR;
+        $str .= $y;
+        $str .= self::SEPARATOR;
+        $str .= $font;
+        $str .= self::SEPARATOR;
+        $str .= $rotation;
+        $str .= self::SEPARATOR;
+        $str .= $xMultiplication;
+        $str .= self::SEPARATOR;
+        $str .= $yMultiplication;
+        if(isset($alignment)) {
+            $str .= self::SEPARATOR;
+            $str .= $alignment;
+        }
+        $str .= self::SEPARATOR;
+        $str .= $text;
+        return $str;
+    }
+
     public function getPrintCommand($set, $copy = null)
     {
         $str = self::PRINT;
@@ -140,22 +196,62 @@ class Printer
         return $str;
     }
 
-    public function printBitmapImage(TsplImage $image, $x = 0, $y = 0, $mode = 0)
+    public function getPrintBitImageRasterFormatCommands(TsplImage $image, $x, $y, $mode)
+    {
+        $commands = [];
+        $image->toRasterFormat();
+        array_push($commands, $this->getSizeCommand());
+        array_push($commands, $this->getGapCommad());
+        array_push($commands, $this->getReferenceCommand());
+        array_push($commands, $this->getDirectionCommand());
+        array_push($commands, self::CLS);
+        array_push($commands, $this->getBitmapCommand($x, $y, $image->getWidthBytes(), $image->getHeight(), $mode, $image->toRasterFormat()));
+        array_push($commands, $this->getPrintCommand(1));
+        array_push($commands, self::EOP);
+
+        return $commands;
+    }
+
+    public function getPrintTextCommands($x, $y, $font, $rotation, $xMultiplication, $yMultiplication, $text, $alignment = null)
     {
         $commands = [];
         array_push($commands, $this->getSizeCommand());
         array_push($commands, $this->getGapCommad());
         array_push($commands, $this->getReferenceCommand());
+        array_push($commands, $this->getDirectionCommand());
         array_push($commands, self::CLS);
-        array_push($commands, $this->getBitmapCommand($x, $y, $image->getWidthBytes(), $image->getHeight(), $mode, $image->toRasterFormat()));
+        array_push($commands, $this->getTextCommand($x, $y, $font, $rotation, $xMultiplication, $yMultiplication, $alignment, $text));
         array_push($commands, $this->getPrintCommand(1));
         array_push($commands, self::EOP);
+
+        return $commands;
+    }
+
+    public function beep()
+    {
+        $this->sendCommands([self::BEEP]);
+    }
+
+    public function bitImageRasterFormat(TsplImage $image, $x = 0, $y = 0, $mode = 0)
+    {
+        $commands = $this->getPrintBitImageRasterFormatCommands($image, $x, $y, $mode);
         $this->sendCommands($commands);
+    }
+
+    public function text($text, $x = 0, $y = 0, $font = 0, $rotation = 0, $xMultiplication = 0, $yMultiplication = 0, $alignment = null)
+    {
+        $commands = $this->getPrintTextCommands($x, $y, $font, $rotation, $xMultiplication, $yMultiplication, $alignment, $text);
+        $this->sendCommands($commands);
+    }
+
+    public function close()
+    {
+        $this->connector->finalize();
     }
 
     protected function sendCommands($commands)
     {
-        $commandString = implode(self::LINE_BREAK, $commands);
+        $commandString = implode(self::LINE_BREAK, $commands).self::LINE_BREAK;
         $this->connector->write($commandString);
     }
 

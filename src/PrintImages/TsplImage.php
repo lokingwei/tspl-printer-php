@@ -35,7 +35,7 @@ use InvalidArgumentException;
  *    also not complex to add, and is a likely future feature.
  *  - Support for native use of the BMP format is a goal, for maximum compatibility with target environments.
  */
-class TsplImage
+abstract class TsplImage
 {
     /**
      * @var int $imgHeight
@@ -48,10 +48,13 @@ class TsplImage
      *  width of the image
      */
     protected $imgWidth = 0;
+
+    protected $scaleWidth;
+    protected $scaleHeight = 0;
     
     /**
      * @var string $imgData
-     *  Image data in rows: 1 for black, 0 for white.
+     *  Image data in rows: 0 for black, 1 for white.
      */
     private $imgData = null;
     
@@ -126,6 +129,12 @@ class TsplImage
         return (int)(($this -> imgWidth + 7) / 8);
     }
 
+    public function setScale($width, $height = 0)
+    {
+        $this->scaleWidth = $width;
+        $this->scaleHeight = $height;
+    }
+
     /**
      * Output the image in raster (row) format. This can result in padding on the
      * right of the image, if its width is not divisible by 8.
@@ -156,36 +165,6 @@ class TsplImage
         return $this -> imgRasterData;
     }
     
-    /**
-     * Output the image in column format.
-     *
-     * @param boolean $doubleDensity True for double density (24px) lines, false for single-density (8px) lines.
-     * @return string[] an array, one item per line of output. All lines will be of equal size.
-     */
-    public function toColumnFormat($doubleDensity = false)
-    {
-        // Just wraps implementations for caching and lazy loading
-        if (isset($this -> imgColumnData[$doubleDensity])) {
-            /* Return cached value */
-            return $this -> imgColumnData[$doubleDensity];
-        }
-        $this -> imgColumnData[$doubleDensity] = null;
-        if ($this -> allowOptimisations) {
-            /* Use optimised code if allowed */
-            $data = $this -> getColumnFormatFromFile($this -> filename, $doubleDensity);
-            $this -> imgColumnData[$doubleDensity] = $data;
-        }
-        if ($this -> imgColumnData[$doubleDensity] === null) {
-            /* Load in full image and render the slow way if no faster implementation
-             is available, or if we've been asked not to use it */
-            if ($this -> imgData === null) {
-                $this -> loadImageData($this -> filename);
-            }
-            $this -> imgColumnData[$doubleDensity] = $this -> getColumnFormat($doubleDensity);
-        }
-        return $this -> imgColumnData[$doubleDensity];
-    }
-
     /**
      * Load an image from disk. This default implementation always gives a zero-sized image.
      *
@@ -306,84 +285,6 @@ class TsplImage
     }
     
     /**
-     * Get column fromat from loaded image pixels, line by line.
-     *
-     * @param boolean $highDensity
-     *  True for high density output (24px lines), false for regular density (8px)
-     * @return string[]
-     *  Array of column format data, one item per row.
-     */
-    private function getColumnFormat($highDensity)
-    {
-        $out = [];
-        $i = 0;
-        while (($line = $this -> getColumnFormatLine($i, $highDensity)) !== null) {
-            $out[] = $line;
-            $i++;
-        }
-        return $out;
-    }
-    
-    /**
-     * Output image in column format. Must be called once for each line of output.
-     *
-     * @param string $lineNo
-     *  Line number to retrieve
-     * @param string $highDensity
-     *  True for high density output (24px lines), false for regular density (8px)
-     * @throws Exception
-     *  Where wrong number of bytes has been generated.
-     * @return NULL|string
-     *  Column format data, or null if there is no more data (when iterating)
-     */
-    private function getColumnFormatLine($lineNo, $highDensity)
-    {
-        // Currently double density in both directions, very experimental
-        $widthPixels = $this -> getWidth();
-        $heightPixels = $this -> getHeight();
-        $widthBytes = $this -> getWidthBytes();
-        $heightBytes = $this -> getHeightBytes();
-        $lineHeight = $highDensity ? 3 : 1; // Vertical density. 1 or 3 (for 8 and 24 pixel lines)
-        // Initialise to zero
-        $x = $y = $bit = $byte = $byteVal = 0;
-        $data = str_repeat("\x00", $widthPixels * $lineHeight);
-        $yStart = $lineHeight * 8 * $lineNo;
-        if ($yStart >= $heightPixels) {
-            return null;
-        }
-        if (strlen($data) == 0) {
-            return $data;
-        }
-        do {
-            $yReal = $y + $yStart;
-            if ($yReal < $heightPixels) {
-                $byteVal |= (int)$this -> imgData[$yReal * $widthPixels + $x] << (7 - $bit);
-            }
-            $y++;
-            $bit++;
-            if ($y >= $lineHeight * 8) {
-                $y = 0;
-                $x++;
-                $bit = 8;
-                if ($x >= $widthPixels) {
-                    $data[$byte] = chr($byteVal);
-                    break;
-                }
-            }
-            if ($bit >= 8) {
-                $data[$byte] = chr($byteVal);
-                $byteVal = 0;
-                $bit = 0;
-                $byte++;
-            }
-        } while (true);
-        if (strlen($data) != $widthPixels * $lineHeight) {
-            throw new Exception("Bug in " . __FUNCTION__ . ", wrong number of bytes.");
-        }
-        return $data;
-    }
-    
-    /**
      * @return boolean True if GD is loaded, false otherwise
      */
     public static function isGdLoaded()
@@ -424,7 +325,7 @@ class TsplImage
     public static function load(
         $filename,
         $allow_optimisations = true,
-        array $preferred = ['imagick', 'gd', 'native']
+        array $preferred = ['imagick', 'native']
     ) {
         /* Fail early if file is not readble */
         if (!file_exists($filename) || !is_readable($filename)) {
@@ -439,12 +340,6 @@ class TsplImage
                     continue;
                 }
                 return new ImagickTsplImage($filename, $allow_optimisations);
-            } elseif ($implemetnation === 'gd') {
-                if (!self::isGdLoaded()) {
-                    // Skip option if GD not loaded
-                    continue;
-                }
-                return new GdTsplImage($filename, $allow_optimisations);
             } elseif ($implemetnation === 'native') {
                 if (!in_array($ext, ['wbmp', 'pbm', 'bmp'])) {
                     // Pure PHP is fastest way to generate raster output from wbmp and pbm formats.
