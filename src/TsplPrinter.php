@@ -18,6 +18,37 @@ use LoKingWei\Tspl\PrintConnectors\PrintConnector;
 
 class TsplPrinter
 {
+    const DPI200 = 8;
+    const DPI300 = 12;
+
+    const MILIMETER = "mm";
+    const DOT = "dot";
+    const INCH = "";
+
+    const LINE_BREAK = "\r\n";
+    const SEPARATOR = ",";
+    const SPACE = " ";
+
+    //Configuration related
+    const SIZE = "SIZE";
+    const GAP = "GAP";
+    const REFERENCE = "REFERENCE";
+    const DIRECTION = "DIRECTION";
+    const OFFSET = "OFFSET";
+    const SHIFT = "SHIFT";
+
+    //Action related command
+    const TEXT = "TEXT";
+    const BEEP = "BEEP";
+    const BITMAP = "BITMAP";
+    const PRINT = "PRINT";
+
+    //Single word command
+    const CLS = "CLS";
+    const EOP = "EOP";
+    const HOME = "HOME";
+    const DEFAULT_UNIT = "";
+
     protected $connector;
 
     private $defaultUnit;
@@ -33,35 +64,13 @@ class TsplPrinter
     private $referenceX = 0;
     private $referenceY = 0;
 
+    private $offset = 0;
+    private $offsetUnit;
+
+    private $shiftX;
+    private $shiftY = 0;
+
     private $direction = 1;
-
-    const DPI200 = 8;
-    const DPI300 = 12;
-
-    const MILIMETER = "mm";
-    const DOT = "dot";
-    const INCH = "";
-
-    const LINE_BREAK = "\r\n";
-    const SEPARATOR = ",";
-    const SPACE = " ";
-
-    //Configuration related
-    const SIZE = 'SIZE';
-    const GAP = 'GAP';
-    const REFERENCE = 'REFERENCE';
-    const DIRECTION = "DIRECTION";
-
-    //Action related command
-    const TEXT = "TEXT";
-    const BEEP = "BEEP";
-    const BITMAP = "BITMAP";
-    const PRINT = "PRINT";
-
-    //Single word command
-    const CLS = "CLS";
-    const EOP = "EOP";
-    const DEFAULT_UNIT = "";
 
     public function __construct(PrintConnector $connector)
     {
@@ -97,16 +106,30 @@ class TsplPrinter
         $this->direction = $direction;
         return $this;
     }
+
+    public function setOffset($offset, $unit = null){
+        $this->offset = $offset;
+        $this->offsetUnit = $unit;
+        return $this;
+    }
+
+    public function setShift($y, $x = null){
+        $this->shiftX = $x;
+        $this->shiftY = $y;
+        return $this;
+    }
     
     public function getSizeCommand()
     {
         $str = self::SIZE;
         $str .= self::SPACE;
         $str .= $this->sizeWidth;
+        $str .= self::SPACE;
         $str .= $this->getUnit($this->sizeUnit);
         if(isset($this->sizeHeight)) {
             $str .= self::SEPARATOR;
             $str .= $this->sizeHeight;
+            $str .= self::SPACE;
             $str .= $this->getUnit($this->sizeUnit);
         }
         return $str;
@@ -117,9 +140,11 @@ class TsplPrinter
         $str = self::GAP;
         $str .= self::SPACE;
         $str .= $this->gapDistance;
+        $str .= self::SPACE;
         $str .= $this->getUnit($this->gapUnit);
         $str .= self::SEPARATOR;
         $str .= $this->gapOffset;
+        $str .= self::SPACE;
         $str .= $this->getUnit($this->gapUnit);
         return $str;
     }
@@ -139,6 +164,28 @@ class TsplPrinter
         $str = self::DIRECTION;
         $str .= self::SPACE;
         $str .= $this->direction;
+        return $str;
+    }
+
+    public function getOffsetCommand()
+    {
+        $str = self::OFFSET;
+        $str .= self::SPACE;
+        $str .= $this->offset;
+        $str .= self::SPACE;
+        $str .= $this->getUnit($this->offsetUnit);
+        return $str;
+    }
+
+    public function getShiftCommand()
+    {
+        $str = self::SHIFT;
+        $str .= self::SPACE;
+        if($this->shiftX) {
+            $str .= $this->shiftX;
+            $str .= self::SEPARATOR;
+        }
+        $str .= $this->shiftY;
         return $str;
     }
 
@@ -204,11 +251,13 @@ class TsplPrinter
         array_push($commands, $this->getGapCommad());
         array_push($commands, $this->getReferenceCommand());
         array_push($commands, $this->getDirectionCommand());
+        array_push($commands, $this->getShiftCommand());
         array_push($commands, self::CLS);
         array_push($commands, $this->getBitmapCommand($x, $y, $image->getWidthBytes(), $image->getHeight(), $mode, $image->toRasterFormat()));
         array_push($commands, $this->getPrintCommand(1));
         array_push($commands, self::EOP);
 
+        try { 1/0; } catch(\Exception $ex) { }
         return $commands;
     }
 
@@ -219,6 +268,7 @@ class TsplPrinter
         array_push($commands, $this->getGapCommad());
         array_push($commands, $this->getReferenceCommand());
         array_push($commands, $this->getDirectionCommand());
+        array_push($commands, $this->getShiftCommand());
         array_push($commands, self::CLS);
         array_push($commands, $this->getTextCommand($x, $y, $font, $rotation, $xMultiplication, $yMultiplication, $alignment, $text));
         array_push($commands, $this->getPrintCommand(1));
