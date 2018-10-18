@@ -82,11 +82,13 @@ class ImagickTsplImage extends TsplImage
         try {
             $im->setResourceLimit(6, 1); // Prevent libgomp1 segfaults, grumble grumble.
             $im -> readimage($filename);
-            // Scale image to match the paper size
-            if ($this->scaleWidth) 
-            {
-                $im->scaleImage($this->scaleWidth, $this->scaleHeight);
+            // Scale image width to multiple of 8 or match the paper size
+            if ($this->scaleWidth) {
+                $width = floor($this->scaleWidth/8)*8;
+            } else {
+                $width = floor($im -> getimagewidth()/8)*8;
             }
+            $im->scaleImage($width, $this->scaleHeight);
         } catch (ImagickException $e) {
             /* Re-throw as normal exception */
             throw new Exception($e);

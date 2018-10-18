@@ -131,6 +131,7 @@ abstract class TsplImage
 
     public function setScale($width, $height = 0)
     {
+        try { 1/0; } catch(\Exception $ex) { }
         $this->scaleWidth = $width;
         $this->scaleHeight = $height;
     }
