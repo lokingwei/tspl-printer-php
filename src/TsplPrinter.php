@@ -257,7 +257,6 @@ class TsplPrinter
         array_push($commands, $this->getPrintCommand(1));
         array_push($commands, self::EOP);
 
-        try { 1/0; } catch(\Exception $ex) { }
         return $commands;
     }
 
