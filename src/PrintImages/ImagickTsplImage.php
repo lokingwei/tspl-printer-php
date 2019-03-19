@@ -136,7 +136,8 @@ class ImagickTsplImage extends TsplImage
         $im = self::alphaRemove($im);
         $im -> setFormat('pbm');
         // Invert the color to match TSPL BITMAP: 1 for white, 0 for black
-        $im -> negateImage(true);
+        $im -> negateImage(true, Imagick::CHANNEL_BLACK);
+        $im -> setImageColorSpace(Imagick::COLORSPACE_CMYK);
         return $this -> getRasterBlobFromImage($im);
     }
 
